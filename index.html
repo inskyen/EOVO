@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EOVO | 意趣·卓越·审美之上</title>
+    <style>
+        :root {
+            /* 注入咱们极其尊贵的专属灵魂紫 */
+            --primary-bg: #4a3570; 
+            --text-main: #ffffff;
+            --text-accent: #e2d1f9;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            text-align: center;
+            overflow: hidden;
+            /* 极其微弱的赛博网格背景，增加质感 */
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .soul-container {
+            animation: floatUp 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .brand-name {
+            font-size: 5rem;
+            font-weight: 300;
+            letter-spacing: 0.25em;
+            margin: 0;
+            margin-right: -0.25em; /* 极其严谨的字距对齐修正 */
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .core-value {
+            font-size: 1.1rem;
+            font-weight: 300;
+            letter-spacing: 0.6em;
+            margin-top: 1.5rem;
+            margin-right: -0.6em;
+            color: var(--text-accent);
+            opacity: 0.9;
+        }
+
+        .energy-line {
+            width: 0px;
+            height: 1px;
+            background-color: var(--text-accent);
+            margin: 2.5rem auto;
+            opacity: 0.5;
+            animation: expandLine 1.5s ease-out 1s forwards;
+        }
+
+        .motto {
+            font-size: 0.85rem;
+            letter-spacing: 0.15em;
+            font-weight: 400;
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+
+        /* 灵魂浮现动画 */
+        @keyframes floatUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 能量线展开动画 */
+        @keyframes expandLine {
+            to {
+                width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="soul-container">
+        <h1 class="brand-name">EOVO</h1>
+        
+        <div class="core-value">意趣·卓越·审美之上</div>
+        
+        <div class="energy-line"></div>
+        
+        <div class="motto">Stay Awake. Stay Dangerous. Stay Together.</div>
+    </div>
+</body>
+</html>
