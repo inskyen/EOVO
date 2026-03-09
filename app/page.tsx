@@ -3,7 +3,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SceneCard from '../components/SceneCard';
 import DrawZone from '../components/DrawZone'; // 👈 1. 召唤抽卡大厅组件
+import ArchiveZone from '../components/ArchiveZone';
 import scenesData from '../public/data/scenes.json';
+import { Suspense } from 'react';
+import SceneDrawer from '../components/SceneDrawer';
 
 const PAGE_SIZE = 5;
 
@@ -122,7 +125,7 @@ return (
           <div className="text-[19px] tracking-[0.2em] text-[#4a3570] font-light">EOVO</div>
         </div>
         <div className="flex-none flex space-x-7 text-[15px]">
-          {['抽卡', '发现', '分区'].map((tabName, index) => (
+          {['抽卡', '发现', '坐标'].map((tabName, index) => (
             <div key={index} className="relative cursor-pointer flex flex-col items-center" onClick={() => setActiveTab(index)}>
               <span className={activeTab === index ? "text-gray-900 font-bold" : "text-gray-500"}>{tabName}</span>
               {activeTab === index && <div className="absolute -bottom-[6px] w-[14px] h-[3px] bg-[#4a3570] rounded-full transition-all"></div>}
@@ -170,7 +173,13 @@ return (
           >
             <div className="max-w-md mx-auto px-4 pt-4 relative z-10" style={{ transform: `translateY(${pullY}px)`, transition: pullY === 0 || isRefreshing ? 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)' : 'none' }}>
               {items.map((scene, index) => (
-                <SceneCard key={`${scene.id}-${index}`} name={scene.name} world={scene.world} description={scene.description} />
+                <SceneCard 
+                  key={`${scene.id}-${index}`} 
+                  id={scene.id}         /* ✨ 补上这句！将真实维度的坐标系递给卡片 ✨ */
+                  name={scene.name} 
+                  world={scene.world} 
+                  description={scene.description} 
+                />
               ))}
               <div ref={loaderRef} className="py-6 flex justify-center items-center text-gray-400 text-[13px]">
                 {isLoading ? <span className="flex items-center space-x-2"><svg className="animate-spin h-4 w-4 text-[#4a3570]" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>正在连接深空节点...</span></span> : !hasMore ? <span className="text-gray-300">— 宇宙边界已至 —</span> : null}
@@ -179,13 +188,18 @@ return (
           </div>
 
           {/* 位面 2：奇物档案馆 */}
-          <div className="w-[100vw] h-full overflow-y-auto shrink-0 flex flex-col items-center justify-center text-gray-400 pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="text-4xl mb-4">🏛️</div>
-            <p className="text-[15px] tracking-widest">奇物档案馆正在接入...</p>
+          <div className="w-[100vw] h-full overflow-y-auto shrink-0 bg-[#0a0a0f] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {/* 👈 核心注入：在这里降临坐标操作台 */}
+            <ArchiveZone /> 
           </div>
 
         </div>
       </div>
+
+      {/* 👈 核心结界：将抽屉挂载在主世界的最上层 */}
+      <Suspense fallback={null}>
+        <SceneDrawer />
+      </Suspense>
     </main>
   );
 }

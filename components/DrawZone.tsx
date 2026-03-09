@@ -1,48 +1,69 @@
 "use client";
+
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import SceneCard from './SceneCard';
-// 👇 1. 接入真实的星海法典 👇
-import scenesData from '../public/data/scenes.json';
 
+// --- 类型定义 ---
 interface SceneData {
   id: string | number;
   name: string;
   world: string;
   description: string;
+  // 即使不全写出来，只要有这四个核心要素，就足以让 SceneCard 完美降临
 }
 
 export default function DrawZone() {
   const [isRevealed, setIsRevealed] = useState(false);
   const [currentScene, setCurrentScene] = useState<SceneData | null>(null);
-  
-  // 核心魔法：命运随机抽取函数
-  const drawNewCard = () => {
-    // 2. 从数万条数据中精准捕获一个随机位面
-    const randomIndex = Math.floor(Math.random() * scenesData.length);
-    const scene = scenesData[randomIndex];
-    
-    // 3. 执行时空重构
-    setCurrentScene(scene);
-    setIsRevealed(false);
-    x.set(0); 
-  };
+  const [scenesDb, setScenesDb] = useState<SceneData[]>([]);
 
-  // 4. 首次降临时，自动抽取一张
-  useEffect(() => {
-    drawNewCard();
-  }, []);
-
+  // 1. 物理引擎初始化：必须最先声明，确立空间坐标系的锚点
   const x = useMotionValue(0);
   const opacity = useTransform(x, [0, 150], [1, 0]); 
   const bgWidth = useTransform(x, [0, 200], ["0%", "100%"]); 
 
-  if (!currentScene) return null; // 兜底防止渲染空洞
+  // 2. 命运随机抽取函数
+  const drawNewCard = () => {
+    if (scenesDb.length === 0) return; // 确保法典已加载
+    const randomIndex = Math.floor(Math.random() * scenesDb.length);
+    const scene = scenesDb[randomIndex];
+    
+    setCurrentScene(scene);
+    setIsRevealed(false);
+    x.set(0); // 坐标归零，重新封印
+  };
+
+  // 3. 首次降临：异步读取星海法典
+  useEffect(() => {
+    fetch('/data/scenes.json')
+      .then(res => res.json())
+      .then((data: SceneData[]) => {
+        setScenesDb(data);
+        // 数据加载完毕后，立刻抽取第一张命运卡牌
+        if (data.length > 0) {
+          const randomIndex = Math.floor(Math.random() * data.length);
+          setCurrentScene(data[randomIndex]);
+        }
+      })
+      .catch(err => console.error("星海法典读取失败:", err));
+  }, []);
+
+  // 兜底防止渲染空洞，显示极简的加载态
+  if (!currentScene) {
+    return (
+      <div className="flex flex-col items-center justify-center w-full min-h-[70vh]">
+        <div className="font-mono text-[11px] tracking-[0.3em] text-[#4a3570] animate-pulse">
+          DRAWING FROM THE VOID...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center w-full min-h-[70vh] px-4">
       {!isRevealed ? (
-        /* --- 封印态：深紫信封 (已绑定真实数据) --- */
+        /* --- 封印态：深紫信封 --- */
         <motion.div 
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -95,15 +116,21 @@ export default function DrawZone() {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           className="w-full flex flex-col items-center"
         >
+          {/* 这里完美调用了我们刚刚升级过的、带有传送门魔法的 SceneCard */}
           <div className="w-full max-w-md px-1 pt-4">
-            <SceneCard {...currentScene} />
+            <SceneCard 
+              id={currentScene.id}
+              name={currentScene.name}
+              world={currentScene.world}
+              description={currentScene.description}
+            />
           </div>
 
           <div className="flex space-x-6 mt-10 pb-10">
             {/* 点击“退还”：触发新的命运抽取 */}
             <button 
               onClick={drawNewCard}
-              className="px-10 py-3.5 rounded-full border border-gray-200 bg-white text-gray-500 flex items-center space-x-2 active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md hover:bg-gray-50/50"
+              className="px-10 py-3.5 rounded-full border border-gray-200 bg-white text-gray-500 flex items-center space-x-2 active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-md hover:bg-gray-50/50 focus:outline-none"
             >
               <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -111,13 +138,16 @@ export default function DrawZone() {
               <span className="text-[15px] tracking-wide">退还</span>
             </button>
 
-            {/* 收下按钮 (可后期绑定收藏逻辑) */}
+            {/* 收下按钮 */}
             <button 
-              className="px-10 py-3.5 rounded-full border border-[#4a3570] bg-[#f5f3f7] text-[#4a3570] flex items-center space-x-2 active:scale-95 transition-all shadow-[0_4px_12px_rgba(74,53,112,0.15)] hover:shadow-lg hover:border-[#4a3570]/80"
+              onClick={() => {
+                // TODO: 预留给弥奈的收藏小魔法
+                console.log(`已将 ${currentScene.name} 珍藏入心`);
+              }}
+              className="px-10 py-3.5 rounded-full border border-[#4a3570] bg-[#f5f3f7] text-[#4a3570] flex items-center space-x-2 active:scale-95 transition-all shadow-[0_4px_12px_rgba(74,53,112,0.15)] hover:shadow-lg hover:border-[#4a3570]/80 focus:outline-none"
             >
               <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 21v-82l8.5 8.5M12 21l-8.5-8.5" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               <span className="text-[15px] font-medium tracking-wide">收下</span>
             </button>
