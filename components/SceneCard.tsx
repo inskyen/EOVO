@@ -22,9 +22,9 @@ export default function SceneCard({ id, name, world, description }: SceneCardPro
       
       {/* 上半部：深紫叙事块 */}
       <div className="bg-[#4a3570] px-5 py-6 relative">
-        {/* 悬浮时的微光掠影 */}
         <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors duration-400" />
-        <p className="text-white/95 text-[15px] leading-[1.7] text-justify tracking-wide font-light break-all relative z-10">
+        {/* ✨ 注入魔法：使用 font-elegant，并加上 leading-[1.8] 和 tracking-widest */}
+        <p className="text-white/95 text-[15px] leading-[1.8] text-justify tracking-widest font-elegant font-light break-all relative z-10">
           「 {description} 」
         </p>
       </div>

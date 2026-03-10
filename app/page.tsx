@@ -4,9 +4,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SceneCard from '../components/SceneCard';
 import DrawZone from '../components/DrawZone'; // 👈 1. 召唤抽卡大厅组件
 import ArchiveZone from '../components/ArchiveZone';
-import scenesData from '../public/data/scenes.json';
 import { Suspense } from 'react';
 import SceneDrawer from '../components/SceneDrawer';
+import SearchZone from "../components/SearchZone";
+import { supabase } from '@/lib/supabase'
 
 const PAGE_SIZE = 5;
 
@@ -16,9 +17,11 @@ export default function Home() {
   // 0: 抽卡 | 1: 发现 (默认) | 2: 分区
   // ==========================================
   const [activeTab, setActiveTab] = useState(1); 
+  // 搜索
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // 2. 发现页 (瀑布流) 状态
-  const [items, setItems] = useState<typeof scenesData>([]);
+  const [items, setItems] = useState<{id: string; name: string; world: string; description: string}[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -32,23 +35,41 @@ export default function Home() {
   const loaderRef = useRef<HTMLDivElement>(null);
   // 👇 新增：用于探测发现页自己滚动到了哪里的探测仪 👇
   const discoverScrollRef = useRef<HTMLDivElement>(null);
+  
 
   // 初始化发现页数据
   useEffect(() => {
-    setItems(scenesData.slice(0, PAGE_SIZE));
+    supabase.from('scenes').select('*').range(0, PAGE_SIZE - 1)
+      .then(({ data }) => {
+        setItems((data || []).map(row => ({
+          id: row.scene_id,
+          name: row.name,
+          world: row.world,
+          description: row.description,
+        })));
+      });
   }, []);
+  
+  // 👇 加在这里
+  useEffect(() => {
+    supabase.from('scenes').select('*').limit(5).then(({ data, error }) => {
+    })
+  }, [])
 
   // 懒加载引擎 (仅在发现页有效)
   const loadMore = useCallback(() => {
     if (activeTab !== 1 || isLoading || isRefreshing || !hasMore) return;
     setIsLoading(true);
-    setTimeout(() => {
-      const currentLength = items.length;
-      const nextItems = scenesData.slice(currentLength, currentLength + PAGE_SIZE);
-      if (nextItems.length > 0) setItems(prev => [...prev, ...nextItems]);
-      if (currentLength + PAGE_SIZE >= scenesData.length) setHasMore(false);
-      setIsLoading(false);
-    }, 800);
+    const currentLength = items.length;
+    supabase.from('scenes').select('*').range(currentLength, currentLength + PAGE_SIZE - 1)
+      .then(({ data }) => {
+        const next = (data || []).map(row => ({
+          id: row.scene_id, name: row.name, world: row.world, description: row.description,
+        }));
+        if (next.length > 0) setItems(prev => [...prev, ...next]);
+        if (next.length < PAGE_SIZE) setHasMore(false);
+        setIsLoading(false);
+      });
   }, [activeTab, items.length, isLoading, isRefreshing, hasMore]);
 
   useEffect(() => {
@@ -105,8 +126,15 @@ const handleTouchMove = (e: React.TouchEvent) => {
       setIsRefreshing(true);
       setPullY(55); 
       setTimeout(() => {
-        const shuffled = [...scenesData].sort(() => 0.5 - Math.random());
-        setItems(shuffled.slice(0, PAGE_SIZE));
+      supabase.from('scenes').select('*').limit(PAGE_SIZE)
+        .then(({ data }) => {
+          setItems((data || []).map(row => ({
+            id: row.scene_id, name: row.name, world: row.world, description: row.description,
+          })));
+          setHasMore(true);
+          setIsRefreshing(false);
+          setPullY(0);
+        });
         setHasMore(true);
         setIsRefreshing(false);
         setPullY(0); 
@@ -133,7 +161,13 @@ return (
           ))}
         </div>
         <div className="flex-1 flex justify-end text-gray-400">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <svg 
+            onClick={() => setIsSearchOpen(true)} // ✨ 注入开启魔法
+            className="w-5 h-5 cursor-pointer hover:text-[#4a3570] transition-colors" 
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
         </div>
       </header>
       
@@ -200,6 +234,7 @@ return (
       <Suspense fallback={null}>
         <SceneDrawer />
       </Suspense>
+      <SearchZone isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </main>
   );
 }

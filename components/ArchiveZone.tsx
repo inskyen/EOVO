@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link"; // ✨ 传送门魔法已在顶部精准注入
+import { supabase } from '@/lib/supabase'
 
 // --- 类型定义 ---
 type Coordinates = {
@@ -65,10 +66,23 @@ export default function ArchiveZone() {
   });
 
   useEffect(() => {
-    fetch("/data/scenes.json")
-      .then((res) => res.json())
-      .then((data) => setScenes(data))
-      .catch((err) => console.error("档案数据读取失败:", err));
+    supabase
+      .from('scenes')
+      .select('*')
+      .then(({ data, error }) => {
+        if (error) { console.error("档案数据读取失败:", error); return; }
+        const mapped = (data || []).map((row) => ({
+          id: row.scene_id,
+          name: row.name,
+          world: row.world,
+          description: row.description,
+          characters: row.characters,
+          tags: row.tags,
+          coords: row.coords,
+          episodes: row.episodes,
+        }));
+        setScenes(mapped);
+      });
   }, []);
 
   const handleTickClick = (axisId: keyof Coordinates, value: string) => {

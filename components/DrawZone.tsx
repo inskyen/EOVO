@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import SceneCard from './SceneCard';
+import { supabase } from '@/lib/supabase'
 
 // --- 类型定义 ---
 interface SceneData {
@@ -36,17 +37,23 @@ export default function DrawZone() {
 
   // 3. 首次降临：异步读取星海法典
   useEffect(() => {
-    fetch('/data/scenes.json')
-      .then(res => res.json())
-      .then((data: SceneData[]) => {
-        setScenesDb(data);
-        // 数据加载完毕后，立刻抽取第一张命运卡牌
-        if (data.length > 0) {
-          const randomIndex = Math.floor(Math.random() * data.length);
-          setCurrentScene(data[randomIndex]);
+    supabase
+      .from('scenes')
+      .select('id, scene_id, name, world, description')
+      .then(({ data, error }) => {
+        if (error) { console.error("星海法典读取失败:", error); return; }
+        const mapped = (data || []).map(row => ({
+          id: row.scene_id,
+          name: row.name,
+          world: row.world,
+          description: row.description,
+        }));
+        setScenesDb(mapped);
+        if (mapped.length > 0) {
+          const randomIndex = Math.floor(Math.random() * mapped.length);
+          setCurrentScene(mapped[randomIndex]);
         }
-      })
-      .catch(err => console.error("星海法典读取失败:", err));
+      });
   }, []);
 
   // 兜底防止渲染空洞，显示极简的加载态

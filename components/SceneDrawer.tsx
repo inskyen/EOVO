@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from '@/lib/supabase'
 
 // --- 类型定义 ---
 type Episode = { title: string; opening: string; };
@@ -30,15 +31,26 @@ export default function SceneDrawer() {
   useEffect(() => {
     if (sceneId) {
       setLoading(true);
-      fetch("/data/scenes.json")
-        .then((res) => res.json())
-        .then((data: Scene[]) => {
-          const found = data.find((s) => String(s.id) === sceneId);
-          setScene(found || null);
+      supabase
+        .from('scenes')
+        .select('*')
+        .eq('scene_id', sceneId)
+        .single()
+        .then(({ data, error }) => {
+          if (error || !data) { setScene(null); setLoading(false); return; }
+          setScene({
+            id: data.scene_id,
+            name: data.name,
+            world: data.world,
+            description: data.description,
+            characters: data.characters,
+            tags: data.tags,
+            coords: data.coords,
+            episodes: data.episodes,
+          });
           setLoading(false);
         });
     } else {
-      // 抽屉收起时，稍微延迟清空数据，保证退场动画的平滑
       setTimeout(() => setScene(null), 300);
     }
   }, [sceneId]);
@@ -53,11 +65,12 @@ export default function SceneDrawer() {
     <AnimatePresence>
       {sceneId && (
         <motion.div
-          initial={{ x: "100%", opacity: 0.5 }} // 从屏幕右侧之外开始
-          animate={{ x: 0, opacity: 1 }}        // 降临到屏幕正中
-          exit={{ x: "100%", opacity: 0 }}      // 退回到屏幕右侧
-          transition={{ type: "spring", damping: 25, stiffness: 200 }} // 专属物理阻尼
-          className="fixed inset-0 z-[100] bg-[#fcfcfd] overflow-y-auto text-[#1a1a24] font-serif pb-32 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          initial={{ x: "100%", opacity: 0.5 }} 
+          animate={{ x: 0, opacity: 1 }}        
+          exit={{ x: "100%", opacity: 0 }}      
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          /* ✨ 核心修复：将 z-[100] 提升至 z-[120]，形成终极叠层覆盖 ✨ */
+          className="fixed inset-0 z-[120] bg-[#fcfcfd] overflow-y-auto text-[#1a1a24] font-serif pb-32 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {/* 极简网格背景 */}
           <div className="fixed inset-0 pointer-events-none z-0 opacity-40" style={{ backgroundImage: "radial-gradient(#e2e2e8 1px, transparent 1px)", backgroundSize: "40px 40px", backgroundPosition: "-19px -19px" }} />
