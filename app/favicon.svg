@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <title>EOVO favicon</title>
+  <defs>
+    <linearGradient id="purpleGrad" x1="10%" y1="100%" x2="90%" y2="0%">
+      <stop offset="0%" stop-color="#CFABE1" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#5E3875" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+  <path d="M 12 44 Q 32 10 52 40" stroke="url(#purpleGrad)" stroke-width="7" stroke-linecap="round" fill="none"/>
+</svg>

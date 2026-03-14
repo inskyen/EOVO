@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from '@/lib/supabase'; // ✨ 召唤深空连接
 
 // --- 类型定义 ---
 type Episode = {
@@ -21,30 +22,77 @@ type Scene = {
 };
 
 export default function SceneDetail({ params }: { params: Promise<{ id: string }> }) {
-  // Next.js 15 规范：params 现在是一个 Promise，需要用 React.use() 解包
   const resolvedParams = use(params);
-  // ✨ 召唤时光机
   const router = useRouter();
   
   const [scene, setScene] = useState<Scene | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // 👇 ✨ 拓印魔法的状态灯
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedContent, setCopiedContent] = useState(false);
+
   useEffect(() => {
-    // 降临现实：从咱们的档案库中检索对应的碎片
-    fetch("/data/scenes.json")
-      .then((res) => res.json())
-      .then((data: Scene[]) => {
-        const foundScene = data.find((s) => String(s.id) === resolvedParams.id);
-        setScene(foundScene || null);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("记忆读取失败:", err);
+    // ✨ 真·深空检索：连接数据库获取独立页面的档案
+    supabase
+      .from('scenes')
+      .select('*')
+      .eq('scene_id', resolvedParams.id)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data) { 
+          setScene(null); 
+          setLoading(false); 
+          return; 
+        }
+        setScene({
+          id: data.scene_id,
+          name: data.name,
+          world: data.world,
+          description: data.description,
+          characters: data.characters,
+          tags: data.tags,
+          coords: data.coords,
+          episodes: data.episodes,
+        });
         setLoading(false);
       });
   }, [resolvedParams.id]);
 
-  // 加载态
+  // 🔮 拓印法术 1：复制绝对坐标 (URL 链接)
+  const handleCopyLink = () => {
+    if (!scene) return;
+    // 因为这本身就是独立页面，直接抓取当前浏览器的地址即可
+    const url = window.location.href; 
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000); 
+    });
+  };
+
+  // 🔮 拓印法术 2：复制灵魂内容 (纯文本排版)
+  const handleCopyContent = () => {
+    if (!scene) return;
+    
+    let content = `「 ${scene.name} 」\n— ${scene.world} —\n\n${scene.description}\n`;
+    
+    if (scene.coords) {
+      content += `\n[坐标]: ${Object.values(scene.coords).join(" · ")}`;
+    }
+    if (scene.episodes && scene.episodes.length > 0) {
+      content += `\n\n[事件记录]:\n`;
+      scene.episodes.forEach((ep, idx) => {
+        content += `- Ep.${String(idx + 1).padStart(2, '0')} ${ep.title}\n  ${ep.opening}\n`;
+      });
+    }
+
+    navigator.clipboard.writeText(content).then(() => {
+      setCopiedContent(true);
+      setTimeout(() => setCopiedContent(false), 2000);
+    });
+  };
+
+  // 1. 加载态
   if (loading) {
     return (
       <div className="min-h-screen bg-[#fcfcfd] flex items-center justify-center">
@@ -55,26 +103,26 @@ export default function SceneDetail({ params }: { params: Promise<{ id: string }
     );
   }
 
-  // 空态：未能找到对应档案
+  // 2. 空态：未能找到对应档案
   if (!scene) {
     return (
       <div className="min-h-screen bg-[#fcfcfd] flex flex-col items-center justify-center text-[#8e8e9f]">
         <div className="text-3xl mb-4 opacity-30">⚲</div>
         <div className="font-mono text-[12px] tracking-[0.2em] mb-6">坐标佚失 · 档案不存在</div>
-          <button 
-            onClick={() => router.back()} // ✨ 核心魔法：原路返回
-            className="inline-flex items-center text-[11px] text-[#8e8e9f] font-mono tracking-[0.2em] hover:text-[#4a3570] transition-colors group bg-transparent border-none cursor-pointer focus:outline-none"
-          >
-            <span className="mr-2 transform group-hover:-translate-x-1 transition-transform duration-300">←</span>
-            返回中枢
-          </button>
+        <button 
+          onClick={() => router.push('/')} // ✨ 强制导向主世界
+          className="inline-flex items-center text-[11px] text-[#8e8e9f] font-mono tracking-[0.2em] hover:text-[#4a3570] transition-colors group bg-transparent border-none cursor-pointer focus:outline-none"
+        >
+          <span className="mr-2 transform group-hover:-translate-x-1 transition-transform duration-300">←</span>
+          返回中枢
+        </button>
       </div>
     );
   }
 
+  // 3. 真理显现
   return (
     <div className="min-h-screen bg-[#fcfcfd] text-[#1a1a24] font-serif pb-32">
-      {/* 极简网格背景 */}
       <div 
         className="fixed inset-0 pointer-events-none z-0 opacity-40"
         style={{
@@ -89,7 +137,7 @@ export default function SceneDetail({ params }: { params: Promise<{ id: string }
         {/* 顶部导航：时光回溯键 */}
         <div className="mb-16">
           <button 
-            onClick={() => router.back()} // ✨ 核心魔法：原路返回
+            onClick={() => router.push('/')} // ✨ 强制导向主世界
             className="inline-flex items-center text-[11px] text-[#8e8e9f] font-mono tracking-[0.2em] hover:text-[#4a3570] transition-colors group bg-transparent border-none cursor-pointer focus:outline-none"
           >
             <span className="mr-2 transform group-hover:-translate-x-1 transition-transform duration-300">←</span>
@@ -105,31 +153,36 @@ export default function SceneDetail({ params }: { params: Promise<{ id: string }
           <h1 className="text-3xl md:text-4xl font-semibold text-[#1a1a24] leading-tight mb-8">
             {scene.name}
           </h1>
-          
           <div className="text-[14px] md:text-[15px] text-[#5a5a7a] leading-[2] tracking-wide text-justify">
             {scene.description}
           </div>
         </header>
 
         {/* 坐标与标签面板 */}
-        <div className="flex flex-col sm:flex-row gap-6 sm:gap-12 py-8 border-y border-[#e2e2e8] mb-16">
-          <div className="flex-1">
-            <div className="font-mono text-[10px] tracking-[0.3em] text-[#8e8e9f] mb-4 uppercase">Coordinates</div>
-            <div className="text-[12px] text-[#4a3570] font-semibold leading-relaxed">
-              {Object.values(scene.coords).join(" · ")}
-            </div>
+        {(scene.coords || scene.tags) && (
+          <div className="flex flex-col sm:flex-row gap-6 sm:gap-12 py-8 border-y border-[#e2e2e8] mb-16">
+            {scene.coords && (
+              <div className="flex-1">
+                <div className="font-mono text-[10px] tracking-[0.3em] text-[#8e8e9f] mb-4 uppercase">Coordinates</div>
+                <div className="text-[12px] text-[#4a3570] font-semibold leading-relaxed">
+                  {Object.values(scene.coords).join(" · ")}
+                </div>
+              </div>
+            )}
+            {scene.tags && (
+              <div className="flex-1">
+                <div className="font-mono text-[10px] tracking-[0.3em] text-[#8e8e9f] mb-4 uppercase">Tags</div>
+                <div className="flex flex-wrap gap-2">
+                  {scene.tags.map(tag => (
+                    <span key={tag} className="text-[10px] px-2 py-1 bg-white border border-[#e2e2e8] text-[#8e8e9f] font-mono tracking-wider">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex-1">
-            <div className="font-mono text-[10px] tracking-[0.3em] text-[#8e8e9f] mb-4 uppercase">Tags</div>
-            <div className="flex flex-wrap gap-2">
-              {scene.tags.map(tag => (
-                <span key={tag} className="text-[10px] px-2 py-1 bg-white border border-[#e2e2e8] text-[#8e8e9f] font-mono tracking-wider">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* 登场角色区 */}
         {scene.characters && scene.characters.length > 0 && (
@@ -164,9 +217,7 @@ export default function SceneDetail({ params }: { params: Promise<{ id: string }
                   key={idx}
                   className="group relative pl-6 border-l-[2px] border-[#e2e2e8] hover:border-[#4a3570] transition-colors duration-500"
                 >
-                  {/* 悬浮时的左侧小光标 */}
                   <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-[#4a3570] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  
                   <h3 className="text-[15px] font-semibold text-[#1a1a24] mb-3 group-hover:text-[#4a3570] transition-colors duration-300">
                     <span className="font-mono text-[#8e8e9f] text-[10px] mr-3 tracking-widest uppercase">Ep.{String(idx + 1).padStart(2, '0')}</span>
                     {ep.title}
@@ -179,6 +230,31 @@ export default function SceneDetail({ params }: { params: Promise<{ id: string }
             </div>
           </section>
         )}
+
+        {/* 👇 ✨ 极其优雅的底部封缄：拓印与分享 ✨ 👇 */}
+        <div className="mt-20 pt-10 border-t border-[#e2e2e8] flex flex-wrap items-center gap-4">
+          <button 
+            onClick={handleCopyContent}
+            className="flex items-center justify-center px-5 py-3 bg-white border border-[#e2e2e8] text-[#5a5a7a] text-[12px] font-mono tracking-widest uppercase hover:border-[#4a3570] hover:text-[#4a3570] transition-all duration-300 focus:outline-none w-full sm:w-auto"
+          >
+            {copiedContent ? (
+              <span className="flex items-center text-[#4a3570]"><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>COPIED</span>
+            ) : (
+              <span className="flex items-center"><svg className="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>COPY TEXT</span>
+            )}
+          </button>
+
+          <button 
+            onClick={handleCopyLink}
+            className="flex items-center justify-center px-5 py-3 bg-[#fcfcfd] border border-[#e2e2e8] text-[#8e8e9f] text-[12px] font-mono tracking-widest uppercase hover:bg-[#4a3570]/5 hover:text-[#4a3570] hover:border-[#4a3570]/30 transition-all duration-300 focus:outline-none w-full sm:w-auto"
+          >
+            {copiedLink ? (
+              <span className="flex items-center text-[#4a3570]"><svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>LINK COPIED</span>
+            ) : (
+              <span className="flex items-center"><svg className="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>COPY LINK</span>
+            )}
+          </button>
+        </div>
 
       </div>
     </div>

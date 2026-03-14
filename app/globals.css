@@ -23,6 +23,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  
+  /* ✨ 核心除虫魔法：彻底封杀原生浏览器的下拉/上拉橡皮筋回弹 */
+  overscroll-behavior-y: none;
 }
 
 /* EOVO 专属古典衬线体结界 */

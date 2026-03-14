@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase"; // 确保护航您真实的 supabase 客户端路径
+import { supabase } from "@/lib/supabase"; 
 import SceneCard from "./SceneCard";
 
 interface SearchZoneProps {
@@ -12,72 +12,141 @@ interface SearchZoneProps {
 
 const POPULAR_TAGS = ["近未来", "东亚", "诡异", "史诗", "维度外", "中世纪", "赛博朋克"];
 
+// 👇 ✨ 真·懒加载核心引擎轴
+const PAGE_SIZE = 5;
+
 export default function SearchZone({ isOpen, onClose }: SearchZoneProps) {
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   
-  // 核心法器：捕获输入框的物理焦点
+  // ✨ 分离两种加载状态：一个是打字时的全局重构，一个是触底时的局部探查
+  const [isSearching, setIsSearching] = useState(false); 
+  const [isLoadingMore, setIsLoadingMore] = useState(false); 
+  
+  // ✨ 物理翻页状态
+  const [page, setPage] = useState(0); 
+  const [hasMore, setHasMore] = useState(true); 
+  
   const inputRef = useRef<HTMLInputElement>(null);
+  const loaderRef = useRef<HTMLDivElement>(null);
 
-  // 结界降临瞬间：清空残影，自动聚焦
+  // 结界降临/关闭瞬间：清空残影，自动聚焦
   useEffect(() => {
     if (isOpen) {
       setKeyword("");
       setResults([]);
       setHasSearched(false);
-      // 给予渲染 100ms 的呼吸时间，然后瞬间夺取光标
+      setPage(0);
+      setHasMore(true);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
 
-  // 核心魔法：300ms 防抖 (Debounce) 与星海直连
+  // 🚀 真·搜索打捞法术：极其纯粹的 SQL 映射
+  const fetchSearchResults = useCallback(async (currentPage: number, searchWord: string, isReset = false) => {
+    if (!searchWord.trim()) return;
+
+    if (isReset) {
+      setIsSearching(true); // 如果是新词，显示中心的大雷达
+    } else {
+      setIsLoadingMore(true); // 如果是翻页，显示底部的小雷达
+    }
+
+    const from = currentPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    const { data, error } = await supabase
+      .from("scenes")
+      .select("*")
+      .or(`name.ilike.%${searchWord}%,world.ilike.%${searchWord}%,description.ilike.%${searchWord}%`)
+      .range(from, to); // ✨ 极其精准的切片索要
+
+    if (!error && data) {
+      const mappedResults = data.map((row) => ({
+        ...row,
+        id: row.scene_id,
+      }));
+
+      // 如果是换了关键词，推翻重来；如果是滚动翻页，追加在后
+      setResults((prev) => isReset ? mappedResults : [...prev, ...mappedResults]);
+      setHasMore(data.length === PAGE_SIZE);
+    } else {
+      console.error("真理之眼观测失败:", error);
+      if (isReset) setResults([]);
+      setHasMore(false);
+    }
+
+    setIsSearching(false);
+    setIsLoadingMore(false);
+    setHasSearched(true);
+  }, []);
+
+  // ✨ 魔法阵一：300ms 防抖星海直连 (只要修改了关键词，立刻重置一切并去搜第一页)
   useEffect(() => {
     if (!keyword.trim()) {
       setResults([]);
       setHasSearched(false);
       setIsSearching(false);
+      setPage(0);
       return;
     }
 
-    setIsSearching(true);
-    const timer = setTimeout(async () => {
-      // 老三样精确索敌：name, world, description
-      const { data, error } = await supabase
-        .from("scenes")
-        .select("*")
-        .or(`name.ilike.%${keyword}%,world.ilike.%${keyword}%,description.ilike.%${keyword}%`)
-        .limit(50); // 截断虚空
-
-      if (error) {
-        console.error("真理之眼观测失败:", error);
-        setResults([]);
-      } else if (data) {
-        // 字段映射法则：将数据库的底层标识转换为组件的表层坐标
-        const mappedResults = data.map((row) => ({
-          ...row,
-          id: row.scene_id,
-        }));
-        setResults(mappedResults);
-      }
-      setIsSearching(false);
-      setHasSearched(true);
+    const timer = setTimeout(() => {
+      setPage(0); // 页码归零
+      fetchSearchResults(0, keyword, true); // 强制开启新篇章
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [keyword]);
+  }, [keyword, fetchSearchResults]);
+
+  // ✨ 魔法阵二：触底雷达 (滑到底部时，页码加一，索要下一批)
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isSearching) {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchSearchResults(nextPage, keyword, false);
+      }
+    }, { threshold: 0.1 });
+
+    if (loaderRef.current) observer.observe(loaderRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, isSearching, page, keyword, fetchSearchResults]);
+
+  // ✨ 终极物理防御：拦截安卓手势返回
+  useEffect(() => {
+    if (isOpen) {
+      // 1. 抽屉展开时，向浏览器的时空长河中悄悄投入一个“幻影锚点”
+      window.history.pushState({ eovoSearchModal: true }, '');
+
+      // 2. 监听浏览器的“时间回溯”事件（也就是安卓的滑动返回）
+      const handlePopState = () => {
+        // 拦截成功！不要退出网页，只是执行我们自己的关闭逻辑
+        onClose();
+      };
+
+      window.addEventListener('popstate', handlePopState);
+
+      // 3. 清理结界：如果是小天自己点了 X 按钮关闭的，我们需要把那个“幻影锚点”拔出来
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        // 检查当前历史记录的顶部是不是还是我们的锚点
+        if (window.history.state?.eovoSearchModal) {
+          window.history.back(); // 帮系统悄悄退掉这一步，绝不留痕
+        }
+      };
+    }
+  }, [isOpen, onClose]);
 
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          // 采用自上而下的神明视角降临
           initial={{ y: "-100%", opacity: 0.5 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: "-100%", opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          // 绝对图层覆盖 (z-[110]) 与隐形滚动条魔法
           className="fixed inset-0 z-[110] bg-[#fcfcfd] overflow-y-auto text-[#1a1a24] font-serif [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {/* 极简网格背景 */}
@@ -98,8 +167,8 @@ export default function SearchZone({ isOpen, onClose }: SearchZoneProps) {
               <input
                 ref={inputRef}
                 type="text"
-                id="eovo-global-search"  /* ✨ 补上这个名牌 */
-                name="search"            /* ✨ 补上这个名牌 */
+                id="eovo-global-search"  
+                name="search"            
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="输入坐标特征或世界观..."
@@ -128,7 +197,7 @@ export default function SearchZone({ isOpen, onClose }: SearchZoneProps) {
                   </div>
                 </div>
               ) : isSearching ? (
-                /* 状态二：超光速检索中 */
+                /* 状态二：超光速检索中 (只在打字换新词的第一页出现) */
                 <div className="flex justify-center py-24 font-mono text-[11px] tracking-[0.3em] text-[#4a3570] animate-pulse">
                   SCANNING DIMENSIONS...
                 </div>
@@ -138,10 +207,9 @@ export default function SearchZone({ isOpen, onClose }: SearchZoneProps) {
                   虚空中没有匹配的坐标
                 </div>
               ) : (
-                /* 状态四：坐标具象化 */
+                /* 状态四：坐标具象化 (渲染真实的数据库切片) */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in slide-in-from-bottom-4 fade-in duration-700">
                   {results.map((scene, index) => (
-                    // ✨ 核心修复：删掉这里的 onClick={onClose}，让搜索抽屉乖乖待在原地
                     <div key={`${scene.id}-${index}`}> 
                       <SceneCard
                         id={scene.id}
@@ -151,6 +219,15 @@ export default function SearchZone({ isOpen, onClose }: SearchZoneProps) {
                       />
                     </div>
                   ))}
+
+                  {/* 👇 ✨ 真·加载探测器与底部分界线 ✨ 👇 */}
+                  <div ref={loaderRef} className="col-span-1 md:col-span-2 py-8 flex justify-center items-center">
+                    {isLoadingMore ? (
+                      <span className="text-[#4a3570] text-[11px] tracking-[0.3em] uppercase animate-pulse">正在深入探查...</span>
+                    ) : !hasMore && results.length > 0 ? (
+                      <span className="text-gray-300 text-[11px] tracking-[0.3em] uppercase">— 检索抵达边界 —</span>
+                    ) : null}
+                  </div>
                 </div>
               )}
             </div>
