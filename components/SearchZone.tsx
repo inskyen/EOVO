@@ -114,30 +114,38 @@ export default function SearchZone({ isOpen, onClose }: SearchZoneProps) {
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore, isSearching, page, keyword, fetchSearchResults]);
 
-  // ✨ 终极物理防御：拦截安卓手势返回
+  // 👇 ✨ 终极护盾：把容易善变的 onClose 锁进盒子里，绝不让它干扰雷达！
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  // ✨ 终极物理防御：极其纯粹的幻影锚点，绝对不干扰 Next.js 的路由树
   useEffect(() => {
     if (isOpen) {
-      // 1. 抽屉展开时，向浏览器的时空长河中悄悄投入一个“幻影锚点”
+      // 1. 展开时，悄悄在脚下垫一块砖（写入一个隐形状态），绝不改变网址
       window.history.pushState({ eovoSearchModal: true }, '');
 
-      // 2. 监听浏览器的“时间回溯”事件（也就是安卓的滑动返回）
-      const handlePopState = () => {
-        // 拦截成功！不要退出网页，只是执行我们自己的关闭逻辑
-        onClose();
+      const handlePopState = (e: PopStateEvent) => {
+        // 2. 极其聪明的敌我识别：如果退回来发现脚下这块砖没了，说明小天要彻底退出搜索了！
+        if (!e.state || !e.state.eovoSearchModal) {
+          onCloseRef.current(); // 用盒子里的钥匙关门
+        }
       };
 
+      // 监听时间回溯 (安卓手势返回必然触发)
       window.addEventListener('popstate', handlePopState);
 
-      // 3. 清理结界：如果是小天自己点了 X 按钮关闭的，我们需要把那个“幻影锚点”拔出来
+      // 3. 清理结界
       return () => {
         window.removeEventListener('popstate', handlePopState);
-        // 检查当前历史记录的顶部是不是还是我们的锚点
+        // 如果是小天主动点 CLOSE RADAR 关门的，我们负责把刚才垫的砖抽走，绝不留痕！
         if (window.history.state?.eovoSearchModal) {
-          window.history.back(); // 帮系统悄悄退掉这一步，绝不留痕
+          window.history.back();
         }
       };
     }
-  }, [isOpen, onClose]);
+  }, [isOpen]); // ✨ 极其关键：依赖项里只有 isOpen，雷达极其稳定，绝不重复触发！
 
   return (
     <AnimatePresence>
