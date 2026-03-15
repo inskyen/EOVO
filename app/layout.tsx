@@ -12,37 +12,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// ✨ 核心 SEO 魔法：世界真名与宇宙引力
 export const metadata: Metadata = {
   title: "EOVO · 地球原影",
   description: "人间剪影的数字档案馆。收录文明切片，记录奇物异景，是浩瀚世界的观察者。Earth's Original Visual Observer.",
   keywords: ["EOVO", "地球原影", "奇物档案", "文明切片", "人间剪影", "世界观察", "数字档案"],
   icons: {
-    icon: "/favicon.ico",
-  },
-  openGraph: {
-    title: "EOVO · 地球原影",
-    description: "人间剪影的数字档案馆。收录文明切片，记录奇物异景，是浩瀚世界的观察者。",
-    url: "https://eovo.org",
-    siteName: "EOVO",
-    images: [
-      {
-        url: "https://eovo.org/og-image.png",
-        width: 1200,
-        height: 630,
-      },
-    ],
-    locale: "zh_CN",
-    type: "website",
+    // 强制告诉浏览器去哪里找我们的新信物
+    icon: "/favicon.ico", 
   },
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
