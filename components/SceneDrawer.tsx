@@ -15,7 +15,7 @@ type Scene = {
   characters: string[];
   tags: string[];
   coords: Record<string, string>;
-  episodes: Episode[];
+  moments: Episode[];
 };
 
 export default function SceneDrawer() {
@@ -49,7 +49,7 @@ export default function SceneDrawer() {
             characters: data.characters,
             tags: data.tags,
             coords: data.coords,
-            episodes: data.episodes,
+            moments: data.moments,
           });
           setLoading(false);
         });
@@ -81,9 +81,9 @@ export default function SceneDrawer() {
     if (scene.coords) {
       content += `\n[坐标]: ${Object.values(scene.coords).join(" · ")}`;
     }
-    if (scene.episodes && scene.episodes.length > 0) {
+    if (scene.moments && scene.moments.length > 0) {
       content += `\n\n[事件记录]:\n`;
-      scene.episodes.forEach((ep, idx) => {
+      scene.moments.forEach((ep, idx) => {
         content += `- Ep.${String(idx + 1).padStart(2, '0')} ${ep.title}\n  ${ep.opening}\n`;
       });
     }
@@ -151,15 +151,15 @@ export default function SceneDrawer() {
                   </div>
                 )}
 
-                {/* 剧本推演区 (Episodes) */}
-                {scene.episodes && scene.episodes.length > 0 && (
+                {/* 剧本推演区 (moments) */}
+                {scene.moments && scene.moments.length > 0 && (
                   <section>
                     <h2 className="flex items-center text-[13px] font-mono tracking-[0.3em] text-[#8e8e9f] uppercase mb-10">
                       <span className="w-4 h-[1px] bg-[#4a3570] mr-4 opacity-50"></span>
                       Event Timeline
                     </h2>
                     <div className="space-y-8">
-                      {scene.episodes.map((ep, idx) => (
+                      {scene.moments.map((ep, idx) => (
                         <div key={idx} className="group relative pl-6 border-l-[2px] border-[#e2e2e8] hover:border-[#4a3570] transition-colors duration-500">
                           <div className="absolute left-[-5px] top-1.5 w-2 h-2 rounded-full bg-[#4a3570] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                           <h3 className="text-[15px] font-semibold text-[#1a1a24] mb-3 group-hover:text-[#4a3570] transition-colors duration-300">

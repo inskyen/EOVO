@@ -15,7 +15,7 @@ type Scene = {
   characters: string[];
   tags: string[];
   coords: Record<string, string>;
-  episodes: Episode[];
+  moments: Episode[];
 };
 
 const AXES = [
@@ -127,7 +127,7 @@ export default function ArchiveZone() {
     if (!error && data) {
       const mapped = data.map((row) => ({
         id: row.scene_id, name: row.name, world: row.world, description: row.description,
-        characters: row.characters, tags: row.tags, coords: row.coords, episodes: row.episodes,
+        characters: row.characters, tags: row.tags, coords: row.coords, moments: row.moments,
       }));
 
       // 如果是刚换了坐标，就推翻重来；否则就是翻页追加

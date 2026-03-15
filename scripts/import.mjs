@@ -17,7 +17,7 @@ for (const scene of scenes) {
     characters: scene.characters,
     tags: scene.tags,
     coords: scene.coords,
-    episodes: scene.episodes
+    moments: scene.moments
   })
   if (error) console.error('失败:', scene.id, error.message)
   else console.log('✓', scene.name)

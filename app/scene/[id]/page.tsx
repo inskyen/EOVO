@@ -18,7 +18,7 @@ type Scene = {
   characters: string[];
   tags: string[];
   coords: Record<string, string>;
-  episodes: Episode[];
+  moments: Episode[];
 };
 
 export default function SceneDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -53,7 +53,7 @@ export default function SceneDetail({ params }: { params: Promise<{ id: string }
           characters: data.characters,
           tags: data.tags,
           coords: data.coords,
-          episodes: data.episodes,
+          moments: data.moments,
         });
         setLoading(false);
       });
@@ -79,9 +79,9 @@ export default function SceneDetail({ params }: { params: Promise<{ id: string }
     if (scene.coords) {
       content += `\n[坐标]: ${Object.values(scene.coords).join(" · ")}`;
     }
-    if (scene.episodes && scene.episodes.length > 0) {
+    if (scene.moments && scene.moments.length > 0) {
       content += `\n\n[事件记录]:\n`;
-      scene.episodes.forEach((ep, idx) => {
+      scene.moments.forEach((ep, idx) => {
         content += `- Ep.${String(idx + 1).padStart(2, '0')} ${ep.title}\n  ${ep.opening}\n`;
       });
     }
@@ -204,15 +204,15 @@ export default function SceneDetail({ params }: { params: Promise<{ id: string }
           </section>
         )}
 
-        {/* 剧本推演区 (Episodes) */}
-        {scene.episodes && scene.episodes.length > 0 && (
+        {/* 剧本推演区 (moments) */}
+        {scene.moments && scene.moments.length > 0 && (
           <section>
             <h2 className="flex items-center text-[13px] font-mono tracking-[0.3em] text-[#8e8e9f] uppercase mb-10">
               <span className="w-4 h-[1px] bg-[#4a3570] mr-4 opacity-50"></span>
               Event Timeline
             </h2>
             <div className="space-y-8">
-              {scene.episodes.map((ep, idx) => (
+              {scene.moments.map((ep, idx) => (
                 <div 
                   key={idx}
                   className="group relative pl-6 border-l-[2px] border-[#e2e2e8] hover:border-[#4a3570] transition-colors duration-500"
