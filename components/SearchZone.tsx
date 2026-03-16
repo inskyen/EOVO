@@ -43,7 +43,7 @@ export default function SearchZone({ isOpen, onClose }: SearchZoneProps) {
     }
   }, [isOpen]);
 
-  // 🚀 真·搜索打捞法术：极其纯粹的 SQL 映射
+  // 🚀 真·搜索打捞法术：极其纯粹的 SQL 映射与时间法则
   const fetchSearchResults = useCallback(async (currentPage: number, searchWord: string, isReset = false) => {
     if (!searchWord.trim()) return;
 
@@ -56,11 +56,13 @@ export default function SearchZone({ isOpen, onClose }: SearchZoneProps) {
     const from = currentPage * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
+    // ✨ 召唤真理之眼
     const { data, error } = await supabase
       .from("scenes")
       .select("*")
       .or(`name.ilike.%${searchWord}%,world.ilike.%${searchWord}%,description.ilike.%${searchWord}%`)
-      .range(from, to); // ✨ 极其精准的切片索要
+      .order('created_at', { ascending: false }) // 🎯 极其致命的添加：按时间倒序，最新的永远排在第一眼！
+      .range(from, to); 
 
     if (!error && data) {
       const mappedResults = data.map((row) => ({
@@ -68,8 +70,17 @@ export default function SearchZone({ isOpen, onClose }: SearchZoneProps) {
         id: row.scene_id,
       }));
 
-      // 如果是换了关键词，推翻重来；如果是滚动翻页，追加在后
-      setResults((prev) => isReset ? mappedResults : [...prev, ...mappedResults]);
+      // ✨ 极其严苛的安检：既处理了翻页，又布下了去重结界，彻底抹杀双胞胎幽灵！
+      setResults((prev) => {
+        if (isReset) return mappedResults; // 如果是新词检索，直接推翻重来
+        
+        // 如果是下滑翻页，极其冷酷地剔除已经存在于屏幕上的幻影
+        const existingIds = new Set(prev.map(scene => scene.id));
+        const newUniqueScenes = mappedResults.filter(scene => !existingIds.has(scene.id));
+        
+        return [...prev, ...newUniqueScenes]; // 极其丝滑地无缝拼接
+      });
+      
       setHasMore(data.length === PAGE_SIZE);
     } else {
       console.error("真理之眼观测失败:", error);

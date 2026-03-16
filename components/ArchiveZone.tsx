@@ -112,14 +112,16 @@ export default function ArchiveZone() {
   const fetchScenes = useCallback(async (currentPage: number, currentFilters: Coordinates, isReset = false) => {
     setIsLoading(true);
 
-    // 1. 组装 SQL 指令，让 Supabase 帮我们在深空里筛选！
-    let query = supabase.from('scenes').select('*');
+    let query = supabase
+      .from('scenes')
+      .select('*')
+      .order('created_at', { ascending: false }); // 🎯 最新排前面！
+      
     if (currentFilters.time) query = query.eq('coords->>time', currentFilters.time);
     if (currentFilters.space) query = query.eq('coords->>space', currentFilters.space);
     if (currentFilters.civ) query = query.eq('coords->>civ', currentFilters.civ);
     if (currentFilters.tone) query = query.eq('coords->>tone', currentFilters.tone);
 
-    // 2. 切片指令：向数据库只要这 5 条！
     const from = currentPage * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1; 
     const { data, error } = await query.range(from, to);
@@ -130,26 +132,38 @@ export default function ArchiveZone() {
         characters: row.characters, tags: row.tags, coords: row.coords, moments: row.moments,
       }));
 
-      // 如果是刚换了坐标，就推翻重来；否则就是翻页追加
-      setScenes((prev) => isReset ? mapped : [...prev, ...mapped]);
-      setHasMore(data.length === PAGE_SIZE); // 如果拿回来的不够 5 张，说明到底了
+      // ✨ 极其致命的防御结界：彻底剔除重复的幻影 ✨
+      setScenes((prev) => {
+        if (isReset) return mapped; // 如果是切换坐标，直接推翻重来
+        
+        // 1. 把目前屏幕上已经存在的所有星星的 ID，写进黑名单小本本里
+        const existingIds = new Set(prev.map(scene => scene.id));
+        
+        // 2. 极其严苛的安检：只允许那些 ID 不在黑名单里的新星星通过！
+        const newUniqueScenes = mapped.filter(scene => !existingIds.has(scene.id));
+        
+        // 3. 极其丝滑地拼接
+        return [...prev, ...newUniqueScenes];
+      });
+      setHasMore(data.length === PAGE_SIZE); 
     } else {
       console.error("深空数据索要失败:", error);
     }
     
     setIsLoading(false);
-  }, []);
+  }, []); // ✨ 极其纯粹的 useCallback
 
-  // ✨ 魔法阵一：坐标变更监听器 (只要拨动坐标，立刻重置页码并去数据库要第一页的数据)
+  // ✨ 魔法阵一：坐标变更监听器 
   useEffect(() => {
     setPage(0); 
     fetchScenes(0, selected, true); 
   }, [selected, fetchScenes]);
 
-  // ✨ 魔法阵二：触底雷达 (只要到底了，页码加一，去数据库要下一页)
+  // ✨ 魔法阵二：触底雷达 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore && !isLoading) {
+      // ✨ 极其严谨的判定：如果看到了底部，并且还有数据，并且没有正在加载，再去要下一页
+      if (entries[0].isIntersecting && hasMore && !isLoading && scenes.length > 0) {
         const nextPage = page + 1;
         setPage(nextPage);
         fetchScenes(nextPage, selected, false);
@@ -157,8 +171,10 @@ export default function ArchiveZone() {
     }, { threshold: 0.1 });
 
     if (loaderRef.current) observer.observe(loaderRef.current);
+    
     return () => observer.disconnect();
-  }, [hasMore, isLoading, page, selected, fetchScenes]);
+    // ✨ 极其干净的依赖项
+  }, [hasMore, isLoading, page, selected, fetchScenes, scenes.length]);
 
   // --- 操作面板 ---
   const handleAxisChange = (axisId: keyof Coordinates, value: string | null) => {
